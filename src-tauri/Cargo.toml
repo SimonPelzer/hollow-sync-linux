@@ -7,7 +7,7 @@ license = ""
 repository = ""
 default-run = "hollow-sync"
 edition = "2021"
-rust-version = "1.60"
+rust-version = "1.88"
 
 [build-dependencies]
 tauri-build = { version = "1.5", features = [] }
