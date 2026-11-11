@@ -43,7 +43,7 @@
     },
     "bundle": {
       "active": true,
-      "targets": "all",
+      "targets": ["deb", "appimage", "msi", "nsis", "app", "dmg"],
       "identifier": "io.github.simonpelzer.HollowSync",
       "shortDescription": "Hollow Knight & Silksong Save Sync Tool",
       "longDescription": "An application for synchronizing save files between PC and Nintendo Switch for Hollow Knight and Hollow Knight: Silksong",
