@@ -12,8 +12,8 @@ This tool requires homebrew on your Switch. Always backup your saves before usin
 
 ## Requirements
 
-- Windows 10 or newer
-- [Hollow Knight](https://store.steampowered.com/app/367520/Hollow_Knight/) or [Silksong](https://store.steampowered.com/app/1030300/Hollow_Knight_Silksong/) installed on Windows
+- Windows 10 or newer, or a 64-bit Linux distribution
+- [Hollow Knight](https://store.steampowered.com/app/367520/Hollow_Knight/) or [Silksong](https://store.steampowered.com/app/1030300/Hollow_Knight_Silksong/) installed on PC (on Linux: native or via Proton)
 - [Homebrew-enabled Nintendo Switch](https://switch.hacks.guide/)
 - [JKSV](https://github.com/J-D-K/JKSV) installed on your Switch
 
@@ -24,6 +24,24 @@ This tool requires homebrew on your Switch. Always backup your saves before usin
 2. Run the installer (.exe file)
 3. Launch "Hollow Sync" from your Start menu
 
+### Linux (AppImage / .deb)
+Download the `.AppImage` (any distribution) or `.deb` (Debian/Ubuntu) from the [Releases page](https://github.com/SimonPelzer/hollow-sync-linux/releases).
+
+```bash
+chmod +x Hollow-Sync_*_amd64.AppImage
+./Hollow-Sync_*_amd64.AppImage
+```
+
+Hollow Sync looks for saves in these locations:
+
+| Setup | Save location |
+|---|---|
+| Native Linux build | `~/.config/unity3d/Team Cherry/<game>/` |
+| Steam Flatpak, native build | `~/.var/app/com.valvesoftware.Steam/.config/unity3d/Team Cherry/<game>/` |
+| Proton | `<steam library>/steamapps/compatdata/<appid>/pfx/drive_c/users/steamuser/AppData/LocalLow/Team Cherry/<game>/` |
+
+All Steam libraries listed in `libraryfolders.vdf` are searched. Converted saves and settings are stored in `~/.local/share/HollowSync/`.
+
 ### Option 2: Build from Source
 ```bash
 # Clone the repository
@@ -32,6 +50,9 @@ cd hollow-sync
 
 # Install dependencies
 npm install
+
+# Linux only: install the system libraries Tauri needs (Debian/Ubuntu 22.04)
+# sudo apt install libgtk-3-dev libwebkit2gtk-4.0-dev librsvg2-dev patchelf file
 
 # Run in development mode
 npm run tauri dev
