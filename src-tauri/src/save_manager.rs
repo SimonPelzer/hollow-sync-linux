@@ -1,11 +1,11 @@
 use crate::crypto::SaveCrypto;
-use crate::utils::{Games, get_game_paths, is_jksv_format};
+use crate::utils::{get_game_paths, is_jksv_format, Games};
+use chrono::{DateTime, Utc};
 use serde_json::Value;
 use std::fs::{self, File};
-use std::io::{Read};
+use std::io::Read;
 use std::path::{Path, PathBuf};
-use zip::{ZipArchive};
-use chrono::{DateTime, Utc};
+use zip::ZipArchive;
 
 #[derive(Debug)]
 pub struct SaveFile {
@@ -50,7 +50,10 @@ impl SaveManager {
         Ok(saves_dir)
     }
 
-    pub async fn detect_all_saves(&self, game_filter: Option<String>) -> Result<Vec<Value>, Box<dyn std::error::Error>> {
+    pub async fn detect_all_saves(
+        &self,
+        game_filter: Option<String>,
+    ) -> Result<Vec<Value>, Box<dyn std::error::Error>> {
         let search_paths = get_game_paths(game_filter.as_deref());
         let mut all_saves = Vec::new();
         let mut seen_paths = std::collections::HashSet::new();
@@ -89,7 +92,11 @@ impl SaveManager {
         Ok(result)
     }
 
-    async fn find_save_files(&self, base_path: &Path, game_key: &str) -> Result<Vec<SaveFile>, Box<dyn std::error::Error>> {
+    async fn find_save_files(
+        &self,
+        base_path: &Path,
+        game_key: &str,
+    ) -> Result<Vec<SaveFile>, Box<dyn std::error::Error>> {
         let mut results = Vec::new();
         let game_config = Games::get_config(game_key).ok_or("Unknown game")?;
 
@@ -107,45 +114,53 @@ impl SaveManager {
         Ok(results)
     }
 
-    async fn scan_user_directories(&self, base_path: &Path, results: &mut Vec<SaveFile>) -> Result<(), Box<dyn std::error::Error>> {
+    async fn scan_user_directories(
+        &self,
+        base_path: &Path,
+        results: &mut Vec<SaveFile>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let Ok(entries) = fs::read_dir(base_path) else {
             return Ok(());
         };
-        
+
         for entry in entries.flatten() {
             if !entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
                 continue;
             }
-            
+
             let name = entry.file_name();
             let Some(name_str) = name.to_str() else {
                 continue;
             };
-            
+
             if !name_str.chars().all(|c| c.is_ascii_digit()) {
                 continue;
             }
-            
+
             let sub_path = entry.path();
             self.scan_for_saves(&sub_path, results).await?;
         }
-        
+
         Ok(())
     }
 
-    async fn scan_for_saves(&self, scan_path: &Path, results: &mut Vec<SaveFile>) -> Result<(), Box<dyn std::error::Error>> {
+    async fn scan_for_saves(
+        &self,
+        scan_path: &Path,
+        results: &mut Vec<SaveFile>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let user_regex = regex::Regex::new(r"^user([1-4])\.dat$")?;
-        
+
         let Ok(entries) = fs::read_dir(scan_path) else {
             return Ok(());
         };
-        
+
         for entry in entries.flatten() {
             if let Some(save_file) = self.try_parse_save_file(&entry, &user_regex, scan_path)? {
                 results.push(save_file);
             }
         }
-        
+
         Ok(())
     }
 
@@ -159,26 +174,26 @@ impl SaveManager {
         let Some(name_str) = file_name.to_str() else {
             return Ok(None);
         };
-        
+
         let Some(captures) = user_regex.captures(name_str) else {
             return Ok(None);
         };
-        
+
         let Some(slot_str) = captures.get(1) else {
             return Ok(None);
         };
-        
+
         let Ok(slot) = slot_str.as_str().parse::<u8>() else {
             return Ok(None);
         };
-        
+
         let Ok(metadata) = entry.metadata() else {
             return Ok(None);
         };
-        
+
         let modified = metadata.modified()?;
         let modified_utc = DateTime::<Utc>::from(modified);
-        
+
         Ok(Some(SaveFile {
             slot,
             file: name_str.to_string(),
@@ -202,11 +217,15 @@ impl SaveManager {
                 "pcSave": "",
                 "switchSave": "",
                 "lastSync": null
-            }))
+            })),
         }
     }
 
-    pub async fn save_config(&self, game: &str, config: Value) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn save_config(
+        &self,
+        game: &str,
+        config: Value,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let config_dir = Self::get_config_dir()?;
         let config_file = config_dir.join(format!("{}-sync.json", game));
         let content = serde_json::to_string_pretty(&config)?;
@@ -214,7 +233,10 @@ impl SaveManager {
         Ok(())
     }
 
-    pub async fn get_file_info(&self, file_path: &str) -> Result<Value, Box<dyn std::error::Error>> {
+    pub async fn get_file_info(
+        &self,
+        file_path: &str,
+    ) -> Result<Value, Box<dyn std::error::Error>> {
         match fs::metadata(file_path) {
             Ok(metadata) => {
                 let modified = metadata.modified()?;
@@ -229,15 +251,23 @@ impl SaveManager {
                 "exists": false,
                 "modified": null,
                 "size": 0
-            }))
+            })),
         }
     }
 
-    pub async fn sync(&self, game: &str, force_direction: Option<String>) -> Result<String, Box<dyn std::error::Error>> {
+    pub async fn sync(
+        &self,
+        game: &str,
+        force_direction: Option<String>,
+    ) -> Result<String, Box<dyn std::error::Error>> {
         let config = self.load_config(game).await?;
-        
-        let pc_save = config["pcSave"].as_str().ok_or("PC save path not configured")?;
-        let switch_save = config["switchSave"].as_str().ok_or("Switch save path not configured")?;
+
+        let pc_save = config["pcSave"]
+            .as_str()
+            .ok_or("PC save path not configured")?;
+        let switch_save = config["switchSave"]
+            .as_str()
+            .ok_or("Switch save path not configured")?;
 
         if pc_save.is_empty() || switch_save.is_empty() {
             return Err("Save sync not configured".into());
@@ -264,7 +294,7 @@ impl SaveManager {
                     // compare timestamps to decide sync direction
                     let pc_modified = pc_info["modified"].as_str().unwrap_or("");
                     let switch_modified = switch_info["modified"].as_str().unwrap_or("");
-                    
+
                     if pc_modified > switch_modified {
                         "pc-to-switch".to_string()
                     } else {
@@ -283,7 +313,7 @@ impl SaveManager {
                 self.sync_switch_to_pc(switch_save, pc_save).await?;
                 "Switch save synced to PC format".to_string()
             }
-            _ => return Err("Invalid sync direction".into())
+            _ => return Err("Invalid sync direction".into()),
         };
 
         let mut updated_config = config;
@@ -293,13 +323,17 @@ impl SaveManager {
         Ok(format!("Sync completed: {}", direction))
     }
 
-    async fn sync_pc_to_switch(&self, pc_save: &str, switch_save: &str) -> Result<(), Box<dyn std::error::Error>> {
+    async fn sync_pc_to_switch(
+        &self,
+        pc_save: &str,
+        switch_save: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         if is_jksv_format(switch_save) {
             self.create_backup(pc_save, switch_save).await?;
         } else {
             let pc_data = fs::read(pc_save)?;
             let switch_data = self.crypto.pc_to_switch(&pc_data)?;
-            
+
             if let Some(parent) = Path::new(switch_save).parent() {
                 fs::create_dir_all(parent)?;
             }
@@ -308,14 +342,18 @@ impl SaveManager {
         Ok(())
     }
 
-    async fn sync_switch_to_pc(&self, switch_save: &str, pc_save: &str) -> Result<(), Box<dyn std::error::Error>> {
+    async fn sync_switch_to_pc(
+        &self,
+        switch_save: &str,
+        pc_save: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         if is_jksv_format(switch_save) {
             if Path::new(switch_save).is_dir() {
                 let save_files = self.find_save_files_in_directory(switch_save).await?;
                 if save_files.is_empty() {
                     return Err("No save files found in backup directory".into());
                 }
-                
+
                 if let Some(parent) = Path::new(pc_save).parent() {
                     fs::create_dir_all(parent)?;
                 }
@@ -323,19 +361,21 @@ impl SaveManager {
             } else {
                 let temp_dir = Path::new(pc_save).parent().unwrap().join("temp-extract");
                 fs::create_dir_all(&temp_dir)?;
-                
-                let extracted = self.extract_backup(switch_save, temp_dir.to_str().unwrap()).await?;
+
+                let extracted = self
+                    .extract_backup(switch_save, temp_dir.to_str().unwrap())
+                    .await?;
                 if extracted.is_empty() {
                     return Err("No save files found in backup".into());
                 }
-                
+
                 fs::copy(&extracted[0], pc_save)?;
                 fs::remove_dir_all(&temp_dir)?;
             }
         } else {
             let switch_data = fs::read_to_string(switch_save)?;
             let pc_data = self.crypto.switch_to_pc(&switch_data)?;
-            
+
             if let Some(parent) = Path::new(pc_save).parent() {
                 fs::create_dir_all(parent)?;
             }
@@ -344,10 +384,13 @@ impl SaveManager {
         Ok(())
     }
 
-    async fn find_save_files_in_directory(&self, directory: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    async fn find_save_files_in_directory(
+        &self,
+        directory: &str,
+    ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         let mut save_files = Vec::new();
         let entries = fs::read_dir(directory)?;
-        
+
         for entry in entries.flatten() {
             if let Some(file_name) = entry.file_name().to_str() {
                 if file_name.ends_with(".dat") || file_name.contains("user") {
@@ -355,14 +398,18 @@ impl SaveManager {
                 }
             }
         }
-        
+
         Ok(save_files)
     }
 
-    pub async fn pc_to_switch(&self, input_path: &str, output_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn pc_to_switch(
+        &self,
+        input_path: &str,
+        output_path: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let pc_data = fs::read(input_path)?;
         let switch_data = self.crypto.pc_to_switch(&pc_data)?;
-        
+
         if let Some(parent) = Path::new(output_path).parent() {
             fs::create_dir_all(parent)?;
         }
@@ -370,10 +417,14 @@ impl SaveManager {
         Ok(())
     }
 
-    pub async fn switch_to_pc(&self, input_path: &str, output_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn switch_to_pc(
+        &self,
+        input_path: &str,
+        output_path: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let switch_data = fs::read_to_string(input_path)?;
         let pc_data = self.crypto.switch_to_pc(&switch_data)?;
-        
+
         if let Some(parent) = Path::new(output_path).parent() {
             fs::create_dir_all(parent)?;
         }
@@ -381,37 +432,45 @@ impl SaveManager {
         Ok(())
     }
 
-    pub async fn create_backup(&self, save_file: &str, output_dir: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn create_backup(
+        &self,
+        save_file: &str,
+        output_dir: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         fs::create_dir_all(output_dir)?;
-        
+
         let save_data = fs::read(save_file)?;
         let file_name = Path::new(save_file).file_name().unwrap().to_str().unwrap();
         let backup_file_path = Path::new(output_dir).join(file_name);
-        
+
         fs::write(&backup_file_path, &save_data)?;
 
         Ok(())
     }
 
-    pub async fn extract_backup(&self, backup_file: &str, output_dir: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    pub async fn extract_backup(
+        &self,
+        backup_file: &str,
+        output_dir: &str,
+    ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         let file = File::open(backup_file)?;
         let mut archive = ZipArchive::new(file)?;
         let mut extracted_files = Vec::new();
-        
+
         fs::create_dir_all(output_dir)?;
-        
+
         for i in 0..archive.len() {
             let mut file = archive.by_index(i)?;
-            
+
             if !self.should_extract_file(&file) {
                 continue;
             }
-            
+
             if let Some(output_path) = self.extract_archive_file(&mut file, output_dir)? {
                 extracted_files.push(output_path);
             }
         }
-        
+
         Ok(extracted_files)
     }
 
@@ -427,12 +486,12 @@ impl SaveManager {
         let Some(file_name) = Path::new(file.name()).file_name().and_then(|n| n.to_str()) else {
             return Ok(None);
         };
-        
+
         let output_path = Path::new(output_dir).join(file_name);
-        
+
         let mut content = Vec::new();
         file.read_to_end(&mut content)?;
-        
+
         fs::write(&output_path, content)?;
         Ok(Some(output_path.to_string_lossy().to_string()))
     }
