@@ -27,6 +27,8 @@ This tool requires homebrew on your Switch. Always backup your saves before usin
 ### Linux (AppImage / .deb)
 Download the `.AppImage` (any distribution) or `.deb` (Debian/Ubuntu) from the [Releases page](https://github.com/SimonPelzer/hollow-sync-linux/releases).
 
+On Fedora, Arch and other non-Debian distributions, use the AppImage.
+
 ```bash
 chmod +x Hollow-Sync_*_amd64.AppImage
 ./Hollow-Sync_*_amd64.AppImage
