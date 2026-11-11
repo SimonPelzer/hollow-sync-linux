@@ -73,6 +73,9 @@ jobs:
       - name: Quick TypeScript check
         run: npx tsc --noEmit
 
+      - name: Create placeholder frontend dist
+        run: mkdir -p dist
+
       - name: Quick Rust check
         run: cargo check
         working-directory: src-tauri

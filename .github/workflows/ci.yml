@@ -60,6 +60,11 @@ jobs:
         run: cargo fmt --all --check
         working-directory: src-tauri
 
+      # tauri::generate_context!() requires the frontend dist directory to
+      # exist; the Rust checks don't need the real frontend build.
+      - name: Create placeholder frontend dist
+        run: mkdir -p dist
+
       - name: Run Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
         working-directory: src-tauri
