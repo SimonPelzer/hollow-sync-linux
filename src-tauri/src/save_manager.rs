@@ -71,7 +71,7 @@ impl SaveManager {
             }
         }
 
-        all_saves.sort_by(|a, b| b.modified.cmp(&a.modified));
+        all_saves.sort_by_key(|a| std::cmp::Reverse(a.modified));
         let mut result = Vec::new();
         for save in all_saves {
             let value = serde_json::json!({
@@ -109,7 +109,7 @@ impl SaveManager {
             save.base_path = base_path.to_path_buf();
         }
 
-        results.sort_by(|a, b| b.modified.cmp(&a.modified));
+        results.sort_by_key(|a| std::cmp::Reverse(a.modified));
 
         Ok(results)
     }
