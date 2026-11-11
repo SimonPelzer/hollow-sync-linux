@@ -34,7 +34,7 @@ impl SaveCrypto {
     }
 
     pub fn decrypt(&self, data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-        if data.len() % 16 != 0 {
+        if !data.len().is_multiple_of(16) {
             return Err("Invalid encrypted data length".into());
         }
 

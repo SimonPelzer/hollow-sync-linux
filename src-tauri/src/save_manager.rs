@@ -474,16 +474,24 @@ impl SaveManager {
         Ok(extracted_files)
     }
 
-    fn should_extract_file(&self, file: &zip::read::ZipFile) -> bool {
-        !file.is_dir() && (file.name().contains("user") || file.name().ends_with(".dat"))
+    fn should_extract_file<R: Read>(&self, file: &zip::read::ZipFile<'_, R>) -> bool {
+        let Ok(name) = file.name() else {
+            return false;
+        };
+        !file.is_dir() && (name.contains("user") || name.ends_with(".dat"))
     }
 
-    fn extract_archive_file(
+    fn extract_archive_file<R: Read>(
         &self,
-        file: &mut zip::read::ZipFile,
+        file: &mut zip::read::ZipFile<'_, R>,
         output_dir: &str,
     ) -> Result<Option<String>, Box<dyn std::error::Error>> {
-        let Some(file_name) = Path::new(file.name()).file_name().and_then(|n| n.to_str()) else {
+        let entry_name = file.name()?;
+        let Some(file_name) = Path::new(entry_name.as_ref())
+            .file_name()
+            .and_then(|n| n.to_str())
+            .map(str::to_owned)
+        else {
             return Ok(None);
         };
 
