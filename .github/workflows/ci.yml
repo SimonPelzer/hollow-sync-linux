@@ -122,6 +122,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          # bun.lock exists, so tauri-action would default to bun, which is not
+          # installed; dependencies are installed with npm ci.
+          tauriScript: npm run tauri
           args: ${{ matrix.args }}
 
       - name: Remove bundled Wayland libraries from AppImage

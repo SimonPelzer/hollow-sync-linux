@@ -99,6 +99,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          # Dependencies are installed with npm ci (package-lock.json), so build
+          # with npm too instead of letting tauri-action pick bun from bun.lock.
+          tauriScript: npm run tauri
           releaseId: ${{ needs.create-release.outputs.release-id }}
           args: ${{ matrix.args }}
           includeDebug: false
