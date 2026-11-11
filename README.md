@@ -63,6 +63,22 @@ npm run tauri dev
 npm run tauri build
 ```
 
+### Building the Linux AppImage on any distribution
+
+Tauri 1 needs WebKitGTK 4.0, which newer distributions such as Fedora no longer ship. You can build the AppImage in an Ubuntu 22.04 container with Podman (or Docker) instead:
+
+```bash
+podman run --rm -it -v "$PWD":/src:Z -w /src -e APPIMAGE_EXTRACT_AND_RUN=1 ubuntu:22.04 bash -c '
+  apt-get update &&
+  DEBIAN_FRONTEND=noninteractive apt-get install -y curl wget build-essential libgtk-3-dev libwebkit2gtk-4.0-dev librsvg2-dev patchelf file &&
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs &&
+  curl -fsSL https://sh.rustup.rs | sh -s -- -y && . "$HOME/.cargo/env" &&
+  npm ci && npm run tauri build -- --bundles appimage &&
+  scripts/fix-appimage.sh'
+```
+
+The AppImage ends up in `src-tauri/target/release/bundle/appimage/`. `scripts/fix-appimage.sh` removes the bundled Wayland libraries, which otherwise leave the window blank on newer distributions (`EGL_BAD_PARAMETER`).
+
 ## How to Use
 
 **Step 1: Setup**

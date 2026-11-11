@@ -94,6 +94,7 @@ jobs:
         run: npm ci
 
       - name: Build Tauri app
+        if: runner.os != 'Linux'
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -102,6 +103,43 @@ jobs:
           args: ${{ matrix.args }}
           includeDebug: false
           includeRelease: true
+
+      # On Linux the AppImage has to be post-processed before it is uploaded
+      # (see scripts/fix-appimage.sh), so build and upload without tauri-action.
+      - name: Build Tauri app (Linux)
+        if: runner.os == 'Linux'
+        run: npm run tauri build
+
+      - name: Remove bundled Wayland libraries from AppImage
+        if: runner.os == 'Linux'
+        run: scripts/fix-appimage.sh src-tauri/target/release/bundle/appimage
+
+      - name: Upload Linux bundles to release
+        if: runner.os == 'Linux'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const dirs = [
+              'src-tauri/target/release/bundle/appimage',
+              'src-tauri/target/release/bundle/deb',
+            ];
+            const files = dirs.flatMap((dir) =>
+              fs.readdirSync(dir)
+                .filter((f) => f.endsWith('.AppImage') || f.endsWith('.deb'))
+                .map((f) => path.join(dir, f)));
+            if (files.length === 0) throw new Error('no Linux bundles found');
+            for (const file of files) {
+              core.info(`uploading ${file}`);
+              await github.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: ${{ needs.create-release.outputs.release-id }},
+                name: path.basename(file),
+                data: fs.readFileSync(file),
+              });
+            }
 
   publish-release:
     name: Publish Release

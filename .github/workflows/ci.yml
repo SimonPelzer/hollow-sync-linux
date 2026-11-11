@@ -119,6 +119,10 @@ jobs:
         with:
           args: ${{ matrix.args }}
 
+      - name: Remove bundled Wayland libraries from AppImage
+        if: runner.os == 'Linux'
+        run: scripts/fix-appimage.sh src-tauri/target/release/bundle/appimage
+
       - name: Upload Linux bundles
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
