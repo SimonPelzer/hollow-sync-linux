@@ -9,6 +9,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
+# Creating releases and uploading assets needs write access; the default
+# GITHUB_TOKEN of this repository is read-only.
+permissions:
+  contents: write
+
 jobs:
   create-release:
     name: Create Release
