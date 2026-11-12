@@ -7,7 +7,7 @@ license = ""
 repository = ""
 default-run = "hollow-sync"
 edition = "2021"
-rust-version = "1.60"
+rust-version = "1.88"
 
 [build-dependencies]
 tauri-build = { version = "1.5", features = [] }
@@ -18,7 +18,8 @@ serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "1.5", features = [ "dialog-confirm", "path-all", "fs-all", "dialog-save", "dialog-open", "dialog-ask", "dialog-message", "shell-open"] }
 tokio = { version = "1", features = ["full"] }
 aes = "0.8"
-zip = "0.6"
+# Only deflate is needed to read JKSV backups.
+zip = { version = "9", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 dirs = "5.0"
 base64 = "0.21"
 chrono = { version = "0.4", features = ["serde"] }

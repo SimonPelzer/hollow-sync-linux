@@ -1,10 +1,12 @@
+use aes::cipher::{generic_array::GenericArray, BlockDecrypt, BlockEncrypt, KeyInit};
 use aes::Aes256;
-use aes::cipher::{generic_array::GenericArray, BlockEncrypt, BlockDecrypt, KeyInit};
-use base64::{Engine as _, engine::general_purpose};
+use base64::{engine::general_purpose, Engine as _};
 
 // thx @bloodorca <https://github.com/bloodorca/hollow/blob/master/src/functions.js#L4-L105>
 const ENCRYPTION_KEY: &str = "UKu52ePUBwetZ9wNX88o54dnfKRu0T1l";
-const SAVE_HEADER: [u8; 22] = [0, 1, 0, 0, 0, 255, 255, 255, 255, 1, 0, 0, 0, 0, 0, 0, 0, 6, 1, 0, 0, 0];
+const SAVE_HEADER: [u8; 22] = [
+    0, 1, 0, 0, 0, 255, 255, 255, 255, 1, 0, 0, 0, 0, 0, 0, 0, 6, 1, 0, 0, 0,
+];
 
 pub struct SaveCrypto {
     cipher: Aes256,
@@ -32,7 +34,7 @@ impl SaveCrypto {
     }
 
     pub fn decrypt(&self, data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-        if data.len() % 16 != 0 {
+        if !data.len().is_multiple_of(16) {
             return Err("Invalid encrypted data length".into());
         }
 
@@ -55,7 +57,7 @@ impl SaveCrypto {
     pub fn create_length_prefix(length: usize) -> Vec<u8> {
         let mut bytes = Vec::new();
         let mut len = length;
-        
+
         while len >= 0x80 {
             bytes.push(((len & 0x7F) | 0x80) as u8);
             len >>= 7;
@@ -66,13 +68,14 @@ impl SaveCrypto {
 
     pub fn add_save_header(data: &[u8]) -> Vec<u8> {
         let length_bytes = Self::create_length_prefix(data.len());
-        let mut result = Vec::with_capacity(SAVE_HEADER.len() + length_bytes.len() + data.len() + 1);
-        
+        let mut result =
+            Vec::with_capacity(SAVE_HEADER.len() + length_bytes.len() + data.len() + 1);
+
         result.extend_from_slice(&SAVE_HEADER);
         result.extend_from_slice(&length_bytes);
         result.extend_from_slice(data);
         result.push(11);
-        
+
         result
     }
 
@@ -82,7 +85,7 @@ impl SaveCrypto {
         }
 
         let mut header_end = SAVE_HEADER.len();
-        
+
         // variable length prefix parsing
         for i in 0..5 {
             if header_end >= data.len() {
@@ -93,12 +96,12 @@ impl SaveCrypto {
                 break;
             }
         }
-        
+
         if header_end >= data.len() {
             return Err("Header extends beyond data".into());
         }
 
-        Ok(data[header_end..data.len()-1].to_vec())
+        Ok(data[header_end..data.len() - 1].to_vec())
     }
 
     pub fn pc_to_switch(&self, pc_save_data: &[u8]) -> Result<String, Box<dyn std::error::Error>> {

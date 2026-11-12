@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/tauri';
+import { join } from '@tauri-apps/api/path';
 import { HollowButton } from './components/HollowButton';
 import { SaveCard } from './components/SaveCard';
 import { HollowPanel } from './components/HollowPanel';
@@ -216,7 +217,7 @@ function App() {
     try {
       const savesDir = await invoke<string>('get_saves_dir').catch(() => 'saves');
       const outputName = `${selectedGame}-slot${save.slot}`;
-      const fullSwitchPath = `${savesDir}\\${outputName}`;
+      const fullSwitchPath = await join(savesDir, outputName);
       
       const newConfig = {
         pcSave: save.path,
@@ -748,7 +749,6 @@ function App() {
             onClose={handleCloseTutorial}
             onDontShowAgain={handleHideTutorial}
             game={selectedGame}
-            switchSavePath={config?.switchSave}
           />
         )}
       </div>

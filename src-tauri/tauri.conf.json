@@ -43,8 +43,8 @@
     },
     "bundle": {
       "active": true,
-      "targets": "all",
-      "identifier": "com.hollowsync.dev",
+      "targets": ["deb", "appimage", "msi", "nsis", "app", "dmg"],
+      "identifier": "io.github.simonpelzer.HollowSync",
       "shortDescription": "Hollow Knight & Silksong Save Sync Tool",
       "longDescription": "An application for synchronizing save files between PC and Nintendo Switch for Hollow Knight and Hollow Knight: Silksong",
       "category": "Utility",
@@ -53,8 +53,15 @@
       "resources": [],
       "publisher": "FiveSkill",
       "icon": [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/icon.png",
         "icons/icon.ico"
-      ]
+      ],
+      "appimage": {
+        "bundleMediaFramework": false
+      }
     },
     "security": {
       "csp": null

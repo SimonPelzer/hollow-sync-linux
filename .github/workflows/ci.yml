@@ -2,9 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [master, main, develop]
   pull_request:
-    branches: [main]
+    branches: [master, main]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -35,10 +36,15 @@ jobs:
 
   test-backend:
     name: Test Backend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev librsvg2-dev patchelf file
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -53,6 +59,11 @@ jobs:
       - name: Check Rust formatting
         run: cargo fmt --all --check
         working-directory: src-tauri
+
+      # tauri::generate_context!() requires the frontend dist directory to
+      # exist; the Rust checks don't need the real frontend build.
+      - name: Create placeholder frontend dist
+        run: mkdir -p dist
 
       - name: Run Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
@@ -71,7 +82,7 @@ jobs:
         include:
           - platform: 'macos-latest'
             args: '--target universal-apple-darwin'
-          - platform: 'ubuntu-20.04'
+          - platform: 'ubuntu-22.04'
             args: ''
           - platform: 'windows-latest'
             args: ''
@@ -98,10 +109,10 @@ jobs:
           workspaces: src-tauri
 
       - name: Install dependencies (Ubuntu only)
-        if: matrix.platform == 'ubuntu-20.04'
+        if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev librsvg2-dev patchelf file
 
       - name: Install frontend dependencies
         run: npm ci
@@ -111,7 +122,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          # bun.lock exists, so tauri-action would default to bun, which is not
+          # installed; dependencies are installed with npm ci.
+          tauriScript: npm run tauri
           args: ${{ matrix.args }}
+
+      - name: Remove bundled Wayland libraries from AppImage
+        if: runner.os == 'Linux'
+        run: scripts/fix-appimage.sh src-tauri/target/release/bundle/appimage
+
+      - name: Upload Linux bundles
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: hollow-sync-linux
+          path: |
+            src-tauri/target/release/bundle/appimage/*.AppImage
+            src-tauri/target/release/bundle/deb/*.deb
+          if-no-files-found: error
 
   security-audit:
     name: Security Audit
